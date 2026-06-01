@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <title>GIS Usaha Sidoarjo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-boundary-canvas@1.0.0/src/BoundaryCanvas.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+      body {
+        background:
+          radial-gradient(circle at top left, #ffffff 0%, transparent 50%),
+          radial-gradient(circle at 75% 75%, #ffffff 0%, transparent 50%),
+          #a8d5ff;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .app-wrapper {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* ── SIDEBAR ── */
+      #sidebar {
+        width: 250px;
+        height: 100vh;
+        padding: 0px;
+        box-sizing: border-box;
+        flex-shrink: 0;
+      }
+
+      #sidebar-card {
+        background: #ffffff;
+        width: 100%;
+        height: 100%;
+        padding: 20px;
+        box-sizing: border-box;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-top-right-radius: 20px;
+        border-bottom-right-radius: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+      }
+
+      #sidebar-header {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 24px;
+      }
+      .bps-logo-sidebar { width: 40px; height: auto; }
+      .sidebar-brand-text {
+        font-size: 11px; font-weight: 800; color: #1e3a8a;
+        line-height: 1.3; text-transform: uppercase;
+        letter-spacing: 0.3px; font-style: italic;
+      }
+
+      .profile-box {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 5px; margin-bottom: 10px;
+        cursor: pointer; border-radius: 12px;
+        transition: background 0.2s;
+      }
+      .profile-box:hover { background: rgba(0,0,0,0.04); }
+      .profile-avatar {
+        font-size: 24px; background: #f1f5f9;
+        width: 42px; height: 42px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; flex-shrink: 0;
+      }
+      .profile-info { flex: 1; min-width: 0; }
+      .profile-info .p-name { font-size: 13px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .profile-info .p-role { font-size: 12px; color: #64748b; font-weight: 500; }
+      .profile-arrow { font-size: 11px; color: #64748b; flex-shrink: 0; transition: transform 0.2s; }
+
+      #profil-detail {
+        display: none;
+        margin: 0 0 16px 0;
+        padding: 12px 14px;
+        background: #f8fafc;
+        border-radius: 10px;
+        font-size: 12px;
+        border: 1px solid #e2e8f0;
+      }
+      .profil-row { margin-bottom: 8px; }
+      .profil-row:last-child { margin-bottom: 0; }
+      .profil-row .pkey { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+      .profil-row .pval { font-size: 12px; font-weight: 600; color: #0f172a; word-break: break-all; }
+      .profil-row .pval.blue { color: #2563eb; }
+
+      #sidebar-menu { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+      .menu-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px; cursor: pointer;
+        font-size: 14px; font-weight: 600; color: #475569;
+        border-radius: 10px; transition: all 0.2s ease;
+      }
+      .menu-item:hover { color: #0f172a; background: rgba(0,0,0,0.04); }
+      .menu-item.aktif {
+        background: rgba(0, 147, 221, 0.12);
+        color: #1e3a8a; font-weight: 700;
+      }
+      .menu-item img { width: 18px; height: 18px; flex-shrink: 0; }
+
+      #sidebar-footer {
+        padding: 10px 14px; font-size: 14px; font-weight: 600;
+        color: #475569; cursor: pointer;
+        display: flex; align-items: center; gap: 10px; margin-top: 12px;
+        border-radius: 10px; transition: all 0.2s;
+      }
+      #sidebar-footer:hover { color: #b91c1c; background: rgba(220,38,38,0.06); }
+      #sidebar-footer img { width: 18px; height: 18px; }
+
+      /* ── KONTEN ── */
+      #konten {
+        flex: 1;
+        padding: 24px 24px 24px 10px;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+
+      #main-title {
+        font-size: 32px; font-weight: 800; color: #000000;
+        margin-bottom: 20px; letter-spacing: -0.5px;
+      }
+
+      /* ── DASHBOARD ── */
+      #halaman-dashboard { display: flex; flex-direction: column; gap: 16px; }
+
+      .cards-row-standalone { display: flex; gap: 12px; }
+
+      .card-standalone {
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 14px 16px;
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid rgba(255,255,255,0.7);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      }
+      .card-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .card-icon img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+      .card-info { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+      .card-standalone .angka { font-size: 28px; font-weight: 800; color: #1e3a8a; line-height: 1; }
+      .card-standalone .angka.sm { font-size: 16px; }
+      .card-standalone .label { font-size: 12px; color: #64748b; font-weight: 600; margin-top: 3px; }
+      .card-standalone .sub { font-size: 11px; color: #94a3b8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+      .map-container-large {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .filter-label { font-size: 13px; font-weight: 700; color: #475569; }
+      #select-kecamatan {
+        padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+        font-size: 13px; font-weight: 600; color: #334155; background: #f8fafc; outline: none;
+      }
+      #btn-lihat {
+        background: #2563eb; color: white; border: none;
+        padding: 7px 16px; border-radius: 8px; cursor: pointer;
+        font-size: 13px; font-weight: 700;
+      }
+      #btn-lihat:hover { background: #1d4ed8; }
+      #btn-refresh-peta {
+        background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+        padding: 7px 14px; border-radius: 8px; cursor: pointer;
+        font-size: 13px; font-weight: 700;
+      }
+      #btn-refresh-peta:hover { background: #e2e8f0; }
+      #map { width: 100%; height: 420px; border-radius: 12px; overflow: hidden; }
+
+      /* ── STATISTIK ── */
+      #halaman-statistik {
+        display: none; flex-direction: column;
+        background: transparent;
+        padding: 0; height: auto; overflow-y: visible;
+      }
+      .card-stat-individu {
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.6);
+        border-radius: 18px; padding: 20px; margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      }
+      .tabel-box-container {
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 18px; padding: 20px;
+        border: 1px solid rgba(255,255,255,0.6);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 16px;
+        overflow-x: auto;
+      }
+
+      /* ── DATA USAHA ── */
+      #halaman-data {
+        display: none; flex-direction: column;
+        background: white; border-radius: 18px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+        overflow: hidden; height: auto; min-height: unset;
+      }
+      .data-header {
+        padding: 16px 20px; border-bottom: 1px solid #f1f5f9;
+        display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap;
+      }
+      .data-header h2 { font-size: 16px; font-weight: 800; color: #0f172a; flex: 1; }
+      #search-box {
+        padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+        font-size: 13px; color: #334155; outline: none; width: 200px;
+      }
+      #btn-tambah {
+        background: #2563eb; color: white; border: none;
+        padding: 8px 16px; border-radius: 8px; cursor: pointer;
+        font-size: 13px; font-weight: 700; white-space: nowrap;
+      }
+      .tabel-wrapper { overflow-x: auto; padding: 0 16px 16px; }
+      table { width: 100%; border-collapse: collapse; min-width: 480px; }
+      th {
+        background: #f8fafc; color: #64748b; font-weight: 700;
+        padding: 12px 14px; text-align: left; font-size: 13px;
+        position: sticky; top: 0; border-bottom: 2px solid #e2e8f0; z-index: 10;
+      }
+      td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid #f8fafc; color: #334155; }
+      tr:hover td { background: #f8fafc; }
+      .btn-edit { background: #eff6ff; color: #2563eb; border: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 700; margin-right: 4px; }
+      .btn-hapus { background: #fef2f2; color: #dc2626; border: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 700; }
+      .btn-hapus:disabled, .btn-edit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      /* ── MODAL ── */
+      #modal {
+        display: none; position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.35); z-index: 9999;
+        align-items: center; justify-content: center;
+      }
+      #modal.aktif { display: flex; }
+      .modal-box {
+        background: white; padding: 28px; border-radius: 18px;
+        width: 480px; max-width: 94vw; max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      }
+      .modal-box h3 { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 18px; }
+      .form-group { margin-bottom: 13px; }
+      .form-group label { display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+      .form-group input, .form-group select {
+        width: 100%; padding: 9px 13px;
+        border: 1.5px solid #e2e8f0; border-radius: 9px;
+        font-size: 13px; font-family: 'Inter', sans-serif;
+        color: #334155; outline: none;
+      }
+      .form-group input:focus, .form-group select:focus { border-color: #2563eb; }
+      .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+      .btn-simpan { flex: 1; background: #2563eb; color: white; border: none; padding: 11px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif; }
+      .btn-simpan:disabled { background: #93c5fd; cursor: not-allowed; }
+      .btn-batal { flex: 1; background: #f1f5f9; color: #475569; border: none; padding: 11px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif; }
+
+      /* ── LOADING & TOAST ── */
+      #loading-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #ffffff; z-index: 8888;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px; font-weight: 600; color: #2563eb; gap: 10px;
+      }
+      #toast {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: #0f172a; color: white;
+        padding: 11px 22px; border-radius: 10px;
+        font-size: 13px; font-weight: 600; z-index: 99999;
+        opacity: 0; transition: opacity 0.3s; pointer-events: none;
+      }
+      #toast.muncul { opacity: 1; }
+
+      /* ── OVERLAY GELAP SIDEBAR MOBILE ── */
+      #sidebar-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.45); z-index: 9998;
+      }
+      #sidebar-overlay.aktif { display: block; }
+
+      /* ── TOMBOL BURGER ── */
+      #btn-mobile-menu {
+        display: none;
+        position: fixed; top: 12px; left: 12px; z-index: 1000;
+        background: #2563eb; color: white;
+        padding: 8px 14px; border-radius: 10px; cursor: pointer;
+        font-size: 14px; font-weight: 700;
+        align-items: center; gap: 6px;
+        box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+        border: none;
+      }
+
+      /* ================================================================
+         MOBILE — max-width: 768px
+         ================================================================ */
+      @media screen and (max-width: 768px) {
+
+        body {
+          display: block !important;
+          height: auto !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+        }
+
+        .app-wrapper {
+          display: block !important;
+          width: 100% !important;
+          height: auto !important;
+        }
+
+        /* Sidebar: drawer dari kiri */
+        #sidebar {
+          position: fixed !important;
+          left: -270px !important;
+          top: 0 !important;
+          width: 250px !important;
+          height: 100vh !important;
+          z-index: 9999 !important;
+          transition: left 0.28s cubic-bezier(.4,0,.2,1) !important;
+          padding: 16px !important;
+        }
+        #sidebar.show {
+          left: 0 !important;
+          box-shadow: 6px 0 28px rgba(0,0,0,0.18) !important;
+        }
+
+        /* Tombol burger tampil */
+        #btn-mobile-menu { display: flex !important; }
+
+        /* Konten: mulai dari atas, padding kiri normal */
+        #konten {
+          padding: 56px 12px 32px 12px !important;
+          margin-left: 0 !important;
+          width: 100% !important;
+        }
+
+        #main-title { font-size: 22px !important; margin-bottom: 12px !important; }
+
+        /* Kartu: grid 2 kolom, pas di layar */
+        .cards-row-standalone {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 8px !important;
+          margin-bottom: 12px !important;
+        }
+        .card-standalone {
+          padding: 10px 12px !important;
+          gap: 8px !important;
+          border-radius: 12px !important;
+        }
+        .card-icon { width: 40px !important; height: 40px !important; }
+        .card-standalone .angka { font-size: 20px !important; }
+        .card-standalone .angka.sm { font-size: 13px !important; }
+        .card-standalone .label { font-size: 10px !important; margin-top: 2px !important; }
+        .card-standalone .sub { font-size: 9px !important; }
+
+        /* Peta: tinggi pas, tidak ada ruang kosong */
+        .map-container-large {
+          padding: 12px !important;
+          border-radius: 14px !important;
+          margin-bottom: 0 !important;
+          flex: unset !important;
+          min-height: unset !important;
+        }
+        #map {
+          height: 300px !important;
+          min-height: unset !important;
+        }
+        .filter-label { display: none !important; }
+        #select-kecamatan { flex: 1 !important; font-size: 12px !important; }
+        #btn-lihat, #btn-refresh-peta { font-size: 12px !important; padding: 7px 10px !important; }
+
+        /* Dashboard tidak pakai height tetap */
+        #halaman-dashboard { gap: 10px !important; }
+
+        /* Statistik: stack vertikal */
+        #halaman-statistik { padding: 0 !important; }
+        .stat-row-3 { flex-direction: column !important; }
+        .stat-row-2 { flex-direction: column !important; }
+
+        /* Data usaha */
+        #halaman-data { border-radius: 12px !important; }
+        .data-header h2 { width: 100% !important; font-size: 15px !important; }
+        #search-box { flex: 1 !important; width: auto !important; font-size: 12px !important; }
+        #btn-tambah { font-size: 12px !important; padding: 8px 12px !important; }
+        th, td { font-size: 12px !important; padding: 9px 10px !important; }
+
+        /* Modal */
+        .modal-box { width: 93% !important; padding: 20px 16px !important; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Overlay gelap saat sidebar terbuka di HP -->
+    <div id="sidebar-overlay" onclick="tutupSidebar()"></div>
+
+    <!-- Tombol burger — hanya muncul di HP -->
+    <button id="btn-mobile-menu" onclick="bukaSidebar()">☰ Menu</button>
+
+    <div class="app-wrapper">
+
+      <!-- SIDEBAR -->
+      <div id="sidebar">
+        <div id="sidebar-card">
+          <div id="sidebar-header">
+            <img src="https://lh3.googleusercontent.com/d/1kGkul6XVIybz227U347vuPPII78Jbk5L" alt="Logo BPS" class="bps-logo-sidebar">
+            <div class="sidebar-brand-text">Badan Pusat Statistik<br>Kabupaten Sidoarjo</div>
+          </div>
+
+          <div id="blok-profil-wrapper">
+            <div class="profile-box" onclick="toggleProfil()">
+              <div class="profile-avatar">👤</div>
+              <div class="profile-info">
+                <div class="p-name" id="p-nama">-</div>
+                <div class="p-role" id="p-jabatan">-</div>
+              </div>
+              <span class="profile-arrow" id="profil-arrow">▼</span>
+            </div>
+            <div id="profil-detail">
+              <div class="profil-row"><div class="pkey">Lokasi</div><div class="pval" id="p-lokasi">-</div></div>
+              <div class="profil-row"><div class="pkey">Email</div><div class="pval blue" id="p-email">-</div></div>
+              <div class="profil-row"><div class="pkey">Telepon</div><div class="pval" id="p-telepon">-</div></div>
+            </div>
+          </div>
+
+          <div id="sidebar-menu">
+            <div class="menu-item aktif" id="menu-dashboard" onclick="bukaHalaman('dashboard');tutupSidebar()">
+              <img src="https://lh3.googleusercontent.com/d/1GVFTGv9wEiemYN6UbR6w0MixowlAQzir">Dashboard
+            </div>
+            <div class="menu-item" id="menu-statistik" onclick="bukaHalaman('statistik');tutupSidebar()">
+              <img src="https://lh3.googleusercontent.com/d/1hUnx1oMh9oPWL836MNJyNcsHgqrOf-pD">Statistik
+            </div>
+            <div class="menu-item" id="menu-data" onclick="bukaHalaman('data');tutupSidebar()">
+              <img src="https://lh3.googleusercontent.com/d/1qw4vCLPVzxDHnGHVDKyLqbi118EPD-oO">Data Usaha
+            </div>
+          </div>
+
+          <div id="sidebar-footer" onclick="aksiKeluar()">
+            <img src="https://lh3.googleusercontent.com/d/1X1-F3cM-n505RamSjfRuTP6tqAKrWwZz">
+            <span id="label-keluar">Kembali</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KONTEN -->
+      <div id="konten">
+        <div id="loading-overlay">⏳ Memuat antarmuka spasial...</div>
+
+        <h1 id="main-title">Dashboard</h1>
+
+        <!-- DASHBOARD -->
+        <div id="halaman-dashboard">
+          <div class="cards-row-standalone">
+            <div class="card-standalone">
+              <div class="card-icon"><img src="https://lh3.googleusercontent.com/d/17M7Cl4BvjF9wIL4H9gI69JKZqifI-0-0" alt="Icon Usaha"></div>
+              <div class="card-info">
+                <div class="angka" id="total-usaha">-</div>
+                <div class="label">Total Usaha</div>
+              </div>
+            </div>
+            <div class="card-standalone">
+              <div class="card-icon"><img src="https://lh3.googleusercontent.com/d/1SlDjOwC6L5nNR8_Wzpwc4ysezuVI1orm" alt="Icon Kecamatan"></div>
+              <div class="card-info">
+                <div class="angka" id="total-kecamatan">-</div>
+                <div class="label">Kecamatan Memiliki Usaha Besar</div>
+              </div>
+            </div>
+            <div class="card-standalone">
+              <div class="card-icon"><img src="https://lh3.googleusercontent.com/d/15w7ZtGGJpreOw0vgknGM282zgQ8d1aqa" alt="Icon Kategori"></div>
+              <div class="card-info">
+                <div class="angka sm" id="kategori-terbanyak">-</div>
+                <div class="label">Kategori Terbanyak</div>
+                <div class="sub" id="kategori-jumlah"></div>
+              </div>
+            </div>
+            <div class="card-standalone">
+              <div class="card-icon"><img src="https://lh3.googleusercontent.com/d/13kCjGffWfmUujAMS16YT4RCnmuoatOYk" alt="Icon Skala"></div>
+              <div class="card-info">
+                <div class="angka sm" id="kecamatan-terbanyak">-</div>
+                <div class="label">Kecamatan Terbanyak</div>
+                <div class="sub" id="kecamatan-jumlah"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="map-container-large">
+            <div class="filter-bar">
+              <span class="filter-label">Filter Wilayah:</span>
+              <select id="select-kecamatan"><option value="">-- Semua Kecamatan --</option></select>
+              <button id="btn-lihat" onclick="lihatKecamatan()">Lihat Analisis</button>
+              <span id="hasil-kec"></span>
+              <button id="btn-refresh-peta" onclick="refreshPeta()">Refresh</button>
+            </div>
+            <div id="map"></div>
+          </div>
+        </div>
+
+        <!-- STATISTIK -->
+        <div id="halaman-statistik">
+          <div class="stat-section" style="width:100%;">
+
+            <div class="stat-row-3" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+              <div class="card-stat-individu" style="flex:1;min-width:220px;display:flex;align-items:center;justify-content:space-between;padding:16px;">
+                <div>
+                  <span style="font-size:14px;color:#64748b;font-weight:600;">Kelengkapan Data</span>
+                  <div style="font-size:36px;font-weight:800;color:#0f172a;line-height:1;margin-top:6px;"><span id="txt-total-data-stat">0</span> <span style="font-size:14px;font-weight:600;color:#475569;">Data</span></div>
+                  <div style="margin-top:12px;font-size:12px;display:flex;flex-direction:column;gap:4px;">
+                    <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:#f59e0b;border-radius:3px;"></span>Lengkap</div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:#fef3c7;border-radius:3px;"></span>Kurang Lengkap</div>
+                  </div>
+                </div>
+                <div style="width:130px;height:130px;flex-shrink:0;"><canvas id="chart-kelengkapan"></canvas></div>
+              </div>
+
+              <div class="card-stat-individu" style="flex:1;min-width:220px;display:flex;align-items:center;justify-content:space-between;padding:16px;">
+                <div>
+                  <span style="font-size:14px;color:#64748b;font-weight:600;">Kepadatan Jalur Logistik</span>
+                  <div style="margin-top:12px;font-size:12px;display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:6px;background:#0ea5e9;border-radius:2px;"></span>Jalan Utama</div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span style="width:16px;height:6px;background:#bae6fd;border-radius:2px;"></span>Jalan Desa</div>
+                  </div>
+                </div>
+                <div style="width:130px;height:130px;flex-shrink:0;"><canvas id="chart-logistik"></canvas></div>
+              </div>
+
+              <div class="card-stat-individu" style="flex:1;min-width:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;text-align:center;">
+                <span style="font-size:14px;color:#64748b;font-weight:600;margin-bottom:10px;">Pusat Massa Ekonomi</span>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                  <img src="https://lh3.googleusercontent.com/d/1NIRvFkr1o21oahEIJ8SoNXWNrra5HBp2" style="width:55px;height:55px;">
+                  <div style="text-align:left;font-size:14px;color:#475569;font-family:monospace;" id="txt-centroid-koordinat"><div>Lat: -</div><div>Lon: -</div></div>
+                </div>
+                <span style="font-size:11px;color:#94a3b8;max-width:180px;">Titik tengah spasial dari sebaran koordinat seluruh usaha.</span>
+              </div>
+            </div>
+
+            <div class="stat-row-2" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+              <div class="card-stat-individu" style="flex:1;min-width:260px;padding:18px;">
+                <h4 style="font-size:13px;color:#334155;font-weight:700;margin-bottom:12px;">Penyebaran Usaha per Kecamatan</h4>
+                <div style="height:200px;position:relative;"><canvas id="chart-kecamatan-donut"></canvas></div>
+              </div>
+              <div class="card-stat-individu" style="flex:1;min-width:260px;padding:18px;">
+                <h4 style="font-size:13px;color:#334155;font-weight:700;margin-bottom:12px;">Penyebaran Usaha per Kategori</h4>
+                <div style="height:200px;position:relative;"><canvas id="chart-kategori-donut"></canvas></div>
+              </div>
+            </div>
+
+            <div class="tabel-box-container">
+              <h3 style="font-size:15px;color:#475569;font-weight:700;margin-bottom:16px;">Tabel Persebaran Usaha</h3>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;min-width:500px;">
+                  <thead><tr id="header-matriks-lengkap"></tr></thead>
+                  <tbody id="body-matriks-lengkap"></tbody>
+                  <tfoot id="footer-matriks-lengkap"></tfoot>
+                </table>
+              </div>
+              <div style="margin-top:20px;border-top:1px solid #e2e8f0;padding-top:12px;">
+                <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px;">Keterangan:</div>
+                <div style="display:flex;flex-direction:column;gap:6px;flex-wrap:wrap;font-size:12px;color:#64748b;" id="konten-keterangan-dinamis"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DATA USAHA -->
+        <div id="halaman-data">
+          <div class="data-header">
+            <h2>Data Usaha</h2>
+            <input type="text" id="search-box" placeholder="🔍 Cari ID Usaha..." oninput="cariData()">
+            <button id="btn-tambah" onclick="bukaModalTambah()">+ Tambah</button>
+          </div>
+          <div class="tabel-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th><th>ID Usaha</th><th>Nama Usaha</th>
+                  <th>Kecamatan</th><th>Kategori</th><th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="isi-tabel"></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- end #konten -->
+    </div><!-- end .app-wrapper -->
+
+    <!-- MODAL -->
+    <div id="modal">
+      <div class="modal-box">
+        <h3 id="judul-modal">Tambah Data Usaha</h3>
+        <input type="hidden" id="input-baris">
+        <div class="form-group"><label>ID Usaha</label><input type="text" id="input-idsbr"></div>
+        <div class="form-group"><label>Nama Usaha</label><input type="text" id="input-nama"></div>
+        <div class="form-group"><label>Alamat</label><input type="text" id="input-alamat"></div>
+        <div class="form-group"><label>Kecamatan</label><input type="text" id="input-kecamatan"></div>
+        <div class="form-group"><label>Desa</label><input type="text" id="input-desa"></div>
+        <div class="form-group"><label>Kategori Usaha</label><input type="text" id="input-kategori"></div>
+        <div class="form-group"><label>Latitude</label><input type="number" id="input-lat" step="any"></div>
+        <div class="form-group"><label>Longitude</label><input type="number" id="input-lon" step="any"></div>
+        <div class="modal-actions">
+          <button class="btn-batal" onclick="tutupModal()">Batal</button>
+          <button class="btn-simpan" id="btn-simpan" onclick="simpanData()">Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+      // ── STATE GLOBAL ──
+      let semuaData = [], kecamatanCount = {}, kategoriCount = {}
+      let param = { role:'user', nama:'', jabatan:'', kota:'', provinsi:'', email:'', telepon:'' }
+      let petaGlobal = null, geojsonGlobal = null, highlightLayer = null, semuaMarker = []
+      let instanceChartKelengkapan=null, instanceChartLogistik=null, instanceChartKecamatan=null, instanceChartKategori=null
+      const NAMA_KATEGORI={'A':'Pertanian, Kehutanan & Perikanan','B':'Pertambangan & Penggalian','C':'Industri','D':'Pengadaan Listrik, Gas, Uap/Air Panas & Udara Dingin','E':'Penyediaan Air, Pengelolahan Limbah, Penanganan Limbah & Remediasi','F':'Konstruksi','G':'Perdagangan Besar & Eceran','H':'Transportasi & Penyimpanan','I':'Penyediaan Akomodasi & Penyediaan Makan Minum','J':'Aktivitas Penerbitan, Penyiaran, serta Produksi & Distribusi Konten','K':'Aktivitas Telekomunikasi, Pemrograman Komputer, Konsultansi, Infrastruktur Komputasi & Jasa Informasi Lainnya','L':'Aktivitas Keuangan & Asuransi','M':'Real Estat','N':'Aktivitas Profesional, Ilmiah & Teknis','O':'Aktivitas Administratif & Penunjang Usaha','P':'Administrasi Pemerintahan, Pertahanan & Jaminan Sosial Wajib','Q':'Pendidikan','R':'Aktivitas Kesehatan Manusia & Aktivitas Sosial','S':'Kesenian, Hiburan & Rekreasi','T':'Aktivitas Jasa Lainnya','U':'Aktivitas Rumah Tangga Sebagai Pemberi Kerja; Aktivitas Yang Menghasilkan Barang Jasa Oleh Rumah Tangga untuk Keperluan Sendiri yang Tak Terdiferensiasi','V':'Aktivitas Badan Internasional & Badan Ekstra Internasional Lainnya'}
+
+      // ── SIDEBAR MOBILE ──
+      function bukaSidebar() {
+        document.getElementById('sidebar').classList.add('show')
+        document.getElementById('sidebar-overlay').classList.add('aktif')
+        document.body.style.overflow = 'hidden'
+      }
+      function tutupSidebar() {
+        document.getElementById('sidebar').classList.remove('show')
+        document.getElementById('sidebar-overlay').classList.remove('aktif')
+        document.body.style.overflow = ''
+      }
+
+      // ── CHART HELPERS ──
+      function buatChartSaham(idCanvas, labelData, nilaiData, warnaIsi, warnaGaris) {
+        const ctx = document.getElementById(idCanvas); if (!ctx) return
+        if (idCanvas==='chart-kecamatan-donut' && instanceChartKecamatan) instanceChartKecamatan.destroy()
+        if (idCanvas==='chart-kategori-donut'  && instanceChartKategori)  instanceChartKategori.destroy()
+        const total = nilaiData.reduce((a,b)=>a+b,0)
+        const chartBaru = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: labelData, datasets: [{ data: nilaiData, backgroundColor: warnaGaris, borderWidth: 0, borderRadius: 4 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+              x: { display: true, grid: { display: false }, ticks: { color: '#334155', font:{size:10}, maxRotation:45 } },
+              y: { display: true, beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font:{size:10} } }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { title: c => c[0].label, label: c => ` ${c.raw} Usaha (${total>0?Math.round((c.raw/total)*100):0}%)` } },
+              datalabels: { anchor:'end', align:'end', offset:2, color: warnaGaris, font:{weight:'bold',size:9}, formatter: v => total>0 ? Math.round((v/total)*100)+'%' : '0%' }
+            }
+          },
+          plugins: [ChartDataLabels]
+        })
+        if (idCanvas==='chart-kecamatan-donut') instanceChartKecamatan = chartBaru
+        if (idCanvas==='chart-kategori-donut')  instanceChartKategori  = chartBaru
+      }
+
+      function buatChartDonut(idCanvas, labelData, nilaiData, warnaData) {
+        const ctx = document.getElementById(idCanvas); if (!ctx) return
+        if (idCanvas==='chart-kelengkapan' && instanceChartKelengkapan) instanceChartKelengkapan.destroy()
+        if (idCanvas==='chart-logistik'    && instanceChartLogistik)    instanceChartLogistik.destroy()
+        const chartBaru = new Chart(ctx, {
+          type: 'doughnut',
+          data: { labels: labelData, datasets: [{ data: nilaiData, backgroundColor: warnaData, borderWidth: 1.5, borderColor: '#ffffff' }] },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '30%',
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw} Usaha` } },
+              datalabels: { color:'#ffffff', font:{weight:'bold',size:10}, formatter:(v,c)=>{ let s=c.dataset.data.reduce((a,b)=>a+b,0); return s>0?Math.round((v/s)*100)+'%':'0%' } }
+            }
+          },
+          plugins: [ChartDataLabels]
+        })
+        if (idCanvas==='chart-kelengkapan') instanceChartKelengkapan = chartBaru
+        if (idCanvas==='chart-logistik')    instanceChartLogistik    = chartBaru
+      }
+
+      // ── INIT ──
+      google.script.url.getLocation(function(location) {
+        param.role     = '<?= role ?>'
+        param.nama     = '<?= nama ?>'
+        param.jabatan  = '<?= jabatan ?>'
+        param.kota     = '<?= kota ?>'
+        param.provinsi = '<?= provinsi ?>'
+        param.email    = '<?= email ?>'
+        param.telepon  = '<?= telepon ?>'
+        terapkanUI()
+      })
+
+      function terapkanUI() {
+        const isAdmin = param.role === 'admin'
+        document.getElementById('blok-profil-wrapper').style.display = isAdmin ? 'block' : 'none'
+        document.getElementById('menu-data').style.display           = isAdmin ? 'flex'  : 'none'
+        document.getElementById('btn-tambah').style.display          = isAdmin ? 'inline-block' : 'none'
+        document.getElementById('label-keluar').textContent          = isAdmin ? 'Logout' : 'Kembali'
+        if (isAdmin) {
+          document.getElementById('p-nama').innerText    = param.nama
+          document.getElementById('p-jabatan').innerText = param.jabatan
+          document.getElementById('p-lokasi').innerText  = [param.kota, param.provinsi].filter(Boolean).join(', ') || '-'
+          document.getElementById('p-email').innerText   = param.email
+          document.getElementById('p-telepon').innerText = param.telepon
+        }
+      }
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          semuaData = data
+          prosesData(data)
+          tampilkanTabel(data)
+          buatPeta()
+          document.getElementById('loading-overlay').style.display = 'none'
+        })
+        .getBacaData()
+
+      function toggleProfil() {
+        const d = document.getElementById('profil-detail')
+        const a = document.getElementById('profil-arrow')
+        const buka = d.style.display !== 'block'
+        d.style.display = buka ? 'block' : 'none'
+        a.innerText = buka ? '▲' : '▼'
+      }
+
+      function aksiKeluar() {
+        google.script.run.withSuccessHandler(url => window.top.location.href = url).getIndexUrl()
+      }
+
+      function bukaHalaman(halaman) {
+        ['dashboard','statistik','data'].forEach(h => {
+          document.getElementById('halaman-'+h).style.display = 'none'
+          document.getElementById('menu-'+h).classList.remove('aktif')
+        })
+        const map = { dashboard:'Dashboard', statistik:'Statistik', data:'Data Usaha' }
+        document.getElementById('main-title').innerText = map[halaman] || ''
+        if (halaman === 'data' && param.role !== 'admin') return
+        document.getElementById('halaman-'+halaman).style.display = 'flex'
+        document.getElementById('menu-'+halaman).classList.add('aktif')
+      }
+
+      function prosesData(data) {
+        let total=0; kecamatanCount={}; kategoriCount={}
+        const select = document.getElementById('select-kecamatan')
+        select.innerHTML = '<option value="">-- Semua Kecamatan --</option>'
+
+        for (let i=1; i<data.length; i++) {
+          const kec=data[i][7], kat=data[i][9]
+          if (kec) { total++; kecamatanCount[kec]=(kecamatanCount[kec]||0)+1 }
+          if (kat) { kategoriCount[kat]=(kategoriCount[kat]||0)+1 }
+        }
+
+        document.getElementById('total-usaha').innerText     = total
+        document.getElementById('total-kecamatan').innerText = Object.keys(kecamatanCount).length
+        const topKat = Object.entries(kategoriCount).sort((a,b)=>b[1]-a[1])[0]
+        if (topKat) { document.getElementById('kategori-terbanyak').innerText=topKat[0]; document.getElementById('kategori-jumlah').innerText=topKat[1]+' usaha' }
+        const topKec = Object.entries(kecamatanCount).sort((a,b)=>b[1]-a[1])[0]
+        if (topKec) { document.getElementById('kecamatan-terbanyak').innerText=topKec[0]; document.getElementById('kecamatan-jumlah').innerText=topKec[1]+' usaha' }
+        Object.keys(kecamatanCount).sort().forEach(kec => { const opt=document.createElement('option'); opt.value=kec; opt.innerText=kec; select.appendChild(opt) })
+
+        let totalUsahaRiil=0, dataLengkapCount=0, logistikCount=0, sumLat=0, sumLon=0, countValidKoordinat=0
+        for (let i=1; i<data.length; i++) {
+          const row=data[i]; if (!row[3]&&!row[0]) continue; totalUsahaRiil++
+          const cek=v=>!v||v.toString().trim()===''||v.toString().trim()==='-'
+          const lengkap = !cek(row[0])&&!cek(row[3])&&!cek(row[7])&&!cek(row[8])&&!cek(row[9])&&row[1]&&row[1]!=0&&row[2]&&row[2]!=0
+          if (lengkap) dataLengkapCount++
+          const alamat=(row[4]||'').toString().toUpperCase()
+          if (alamat.includes('RAYA')||alamat.includes('LINGKAR')||alamat.includes('PERGUDANGAN')) logistikCount++
+          const nilaiLat=parseFloat(row[1]), nilaiLon=parseFloat(row[2])
+          if (!isNaN(nilaiLat)&&!isNaN(nilaiLon)&&nilaiLat!==0) { sumLat+=nilaiLat; sumLon+=nilaiLon; countValidKoordinat++ }
+        }
+
+        if (document.getElementById('txt-total-data-stat')) document.getElementById('txt-total-data-stat').innerText = totalUsahaRiil
+        if (countValidKoordinat>0 && document.getElementById('txt-centroid-koordinat')) {
+          const cLat = sumLat/countValidKoordinat
+          const cLon = sumLon/countValidKoordinat
+          
+          // Cari usaha terdekat dari centroid
+          let minJarak = Infinity, kecTerdekat = '-', desaTerdekat = ''
+          for (let i=1; i<data.length; i++) {
+            const r=data[i], rLat=parseFloat(r[1]), rLon=parseFloat(r[2])
+            if (isNaN(rLat)||isNaN(rLon)) continue
+            const jarak = Math.pow(rLat-cLat,2) + Math.pow(rLon-cLon,2)
+            if (jarak < minJarak) { minJarak=jarak; kecTerdekat=r[7]||'-'; desaTerdekat=r[8]||'' }
+          }
+          
+          document.getElementById('txt-centroid-koordinat').innerHTML = 
+            `<div>Lat: ${cLat.toFixed(5)}</div>` +
+            `<div>Lon: ${cLon.toFixed(5)}</div>` +
+            `<div style="margin-top:6px;font-size:12px;color:#2563eb;font-weight:600;">± ${desaTerdekat ? desaTerdekat+', ' : ''}${kecTerdekat}</div>`
+        }
+
+        const semuaKat=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V']
+        const daftarKecSidoarjo=['BALONG BENDO','BUDURAN','CANDI','GEDANGAN','JABON','KREMBUNG','KRIAN','PORONG','PRAMBON','SEDATI','SIDOARJO','SUKODONO','TAMAN','TANGGULANGIN','TARIK','TULANGAN','WARU','WONOAYU']
+        const semuaKecUnik=[...new Set([...Object.keys(kecamatanCount),...daftarKecSidoarjo])].sort()
+        const warnaKategori=['#F59E0B','#8B5CF6','#06B6D4','#EF4444','#0093DD','#22C55E']
+
+        const headerMatriks=document.getElementById('header-matriks-lengkap')
+        if (headerMatriks) {
+          headerMatriks.innerHTML = `<th style="background:#0284c7;color:white;padding:10px;text-align:left;font-size:13px;">Kecamatan</th>`
+            + semuaKat.map((k,i)=>`<th style="background:#0284c7;color:white;padding:10px;font-size:13px;">${k}</th>`).join('')
+            + `<th style="background:#0284c7;color:white;padding:10px;font-size:13px;border-left:2px solid #e2e8f0;">Total</th><th style="background:#0284c7;color:white;padding:10px;font-size:13px;">%</th>`
+        }
+
+        const matriks={}, totalPerKategori={}
+        semuaKat.forEach(kat=>totalPerKategori[kat]=0)
+        semuaKecUnik.forEach(k=>{ matriks[k]={}; semuaKat.forEach(kat=>matriks[k][kat]=0) })
+        for (let i=1; i<data.length; i++) {
+          const k=data[i][7], kat=data[i][9]
+          if (k&&kat&&matriks[k]&&matriks[k][kat]!==undefined) { matriks[k][kat]++; totalPerKategori[kat]++ }
+        }
+
+        const bodyMatriks=document.getElementById('body-matriks-lengkap')
+        if (bodyMatriks) {
+          bodyMatriks.innerHTML = semuaKecUnik.map(k=>{
+            let totalKec=0
+            const cells=semuaKat.map((kat,i)=>{ const n=matriks[k][kat]; totalKec+=n; const w=warnaKategori[i%warnaKategori.length]; return n>0?`<td style="padding:7px;"><span style="background:#0284c7;color:white;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:12px;">${n}</span></td>`:`<td style="padding:7px;color:#cbd5e1;font-size:12px;">0</td>` }).join('')
+            return `<tr><td style="text-align:left;font-weight:bold;color:#0284c7;padding:10px;font-size:13px;">${k}</td>${cells}<td style="padding:7px;border-left:2px solid #e2e8f0;"><span style=";color:#0284c7;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:12px;">${totalKec}</span></td><td style="padding:7px;"><span style="color:#0284c7;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:12px;">${Math.round((totalKec/totalUsahaRiil)*100)}%</span></td></tr>`
+          }).join('')
+        }
+
+        const footerMatriks=document.getElementById('footer-matriks-lengkap')
+        if (footerMatriks) {
+          footerMatriks.innerHTML = `
+            <tr style="border-top:2px solid #e2e8f0;background:#f8fafc;">
+              <td style="font-weight:700;color:#334155;padding:10px;font-size:13px;">Total</td>
+              ${semuaKat.map((kat,i)=>`<td style="padding:7px;"><span style="color:#0284c7;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:12px;">${totalPerKategori[kat]}</span></td>`).join('')}
+              <td colspan="2"></td>
+            </tr>
+            <tr style="background:#f8fafc;">
+              <td style="font-weight:700;color:#334155;padding:10px;font-size:13px;">%</td>
+              ${semuaKat.map(kat=>`<td style="padding:7px;"><span style="color:#0284c7;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:12px;">${totalUsahaRiil>0?Math.round((totalPerKategori[kat]/totalUsahaRiil)*100):0}%</span></td>`).join('')}
+              <td colspan="2"></td>
+            </tr>`
+        }
+
+        const elemenKet=document.getElementById('konten-keterangan-dinamis')
+        if (elemenKet) {
+          elemenKet.innerHTML = semuaKat.map((kat,i)=>{
+            const namaKategori={'A':'Pertanian, Kehutanan & Perikanan','B':'Pertambangan & Penggalian','C':'Industri','D':'Pengadaan Listrik, Gas, Uap/Air Panas & Udara Dingin','E':'Penyediaan Air, Pengelolahan Limbah, Penanganan Limbah & Remediasi','F':'Konstruksi','G':'Perdagangan Besar & Eceran','H':'Transportasi & Penyimpanan','I':'Penyediaan Akomodasi & Penyediaan Makan Minum','J':'Aktivitas Penerbitan, Penyiaran, serta Produksi & Distribusi Konten','K':'Aktivitas Telekomunikasi, Pemrograman Komputer, Konsultansi, Infrastruktur Komputasi & Jasa Informasi Lainnya','L':'Aktivitas Keuangan & Asuransi','M':'Real Estat','N':'Aktivitas Profesional, Ilmiah & Teknis','O':'Aktivitas Administratif & Penunjang Usaha','P':'Administrasi Pemerintahan, Pertahanan & Jaminan Sosial Wajib','Q':'Pendidikan','R':'Aktivitas Kesehatan Manusia & Aktivitas Sosial','S':'Kesenian, Hiburan & Rekreasi','T':'Aktivitas Jasa Lainnya','U':'Aktivitas Rumah Tangga Sebagai Pemberi Kerja; Aktivitas Yang Menghasilkan Barang Jasa Oleh Rumah Tangga untuk Keperluan Sendiri yang Tak Terdiferensiasi','V':'Aktivitas Badan Internasional & Badan Ekstra Internasional Lainnya'}
+            const nama=namaKategori[kat]||kat
+            return `<div style="display:flex;align-items:center;gap:6px;"><span style="background:#0284c7;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">${kat}</span>${nama}</div>`
+          }).join('')
+        }
+
+        buatChartDonut('chart-kelengkapan',['Lengkap','Kurang Lengkap'],[dataLengkapCount,totalUsahaRiil-dataLengkapCount],['#f59e0b','#fef3c7'])
+        buatChartDonut('chart-logistik',['Jalur Utama','Desa'],[logistikCount,totalUsahaRiil-logistikCount],['#0ea5e9','#bae6fd'])
+        buatChartSaham('chart-kecamatan-donut',semuaKecUnik,semuaKecUnik.map(k=>kecamatanCount[k]||0),'rgba(34,197,94,0.2)','#22c55e')
+        buatChartSaham('chart-kategori-donut',semuaKat,semuaKat.map(k=>kategoriCount[k]||0),'rgba(168,85,247,0.2)','#a855f7')
+      }
+
+      function lihatKecamatan() {
+        const kec=document.getElementById('select-kecamatan').value
+        if (highlightLayer) { petaGlobal.removeLayer(highlightLayer); highlightLayer=null }
+        if (!kec) { semuaMarker.forEach(m=>{ if (!petaGlobal.hasLayer(m.marker)) m.marker.addTo(petaGlobal) }); petaGlobal.setView([-7.45,112.72],11); return }
+        semuaMarker.forEach(m=>{ if (m.kec===kec) { if (!petaGlobal.hasLayer(m.marker)) m.marker.addTo(petaGlobal) } else { if (petaGlobal.hasLayer(m.marker)) petaGlobal.removeLayer(m.marker) } })
+        if (geojsonGlobal) {
+          const fitur=geojsonGlobal.features.find(f=>{ const p=f.properties; return p.KECAMATAN===kec||p.kecamatan===kec||p.WADMKC===kec||p.name===kec||p.NAME===kec })
+          if (fitur) { highlightLayer=L.geoJSON(fitur,{style:{fillColor:'#2563eb',fillOpacity:0.15,color:'#2563eb',weight:3,dashArray:'6,4'}}).addTo(petaGlobal); petaGlobal.fitBounds(highlightLayer.getBounds(),{padding:[40,40]}) }
+        }
+      }
+
+      function refreshPeta() {
+        const btn=document.getElementById('btn-refresh-peta'); btn.innerText='⏳'; btn.disabled=true
+        google.script.run.withSuccessHandler(function(data) {
+          semuaData=data; prosesData(data); tampilkanTabel(data)
+          semuaMarker.forEach(m=>{ if (petaGlobal.hasLayer(m.marker)) petaGlobal.removeLayer(m.marker) }); semuaMarker=[]
+          if (highlightLayer) { petaGlobal.removeLayer(highlightLayer); highlightLayer=null }
+          tambahMarker(semuaData)
+          document.getElementById('select-kecamatan').value=''
+          petaGlobal.setView([-7.45,112.72],11)
+          btn.innerText='Refresh'; btn.disabled=false
+          tampilkanToast('✅ Peta berhasil diperbarui!')
+        }).getBacaData()
+      }
+
+      function buatPeta() {
+        petaGlobal=L.map('map').setView([-7.45,112.72],11)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© CARTO'}).addTo(petaGlobal)
+        google.script.run.withSuccessHandler(function(geojson) {
+          geojsonGlobal=geojson
+          L.TileLayer.boundaryCanvas('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{boundary:geojson}).addTo(petaGlobal)
+          L.geoJSON(geojson,{style:{fillOpacity:0.01,color:'#2563eb',weight:1.8}}).addTo(petaGlobal)
+          tambahMarker(semuaData)
+        }).getSidoarjoGeoJson()
+      }
+
+      function tambahMarker(data) {
+        const warna={'C':'#2563eb','G':'#16a34a','Q':'#dc2626','F':'#ea580c','E':'#ca8a04'}
+        for (let i=1; i<data.length; i++) {
+          const row=data[i], lat=parseFloat(row[1]), lon=parseFloat(row[2])
+          if (isNaN(lat)||isNaN(lon)) continue
+          const marker=L.circleMarker([lat,lon],{radius:6.5,fillColor:warna[row[9]]||'#6366f1',color:'white',weight:1.5,fillOpacity:0.85}).addTo(petaGlobal)
+          marker.bindPopup(`<div style="font-family:'Inter',sans-serif;min-width:180px;font-size:13px;"><b style="font-size:14px;color:#0f172a;">${row[3]}</b><hr style="margin:6px 0;border-color:#f1f5f9;"><span style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">ID</span><br><span>${row[0]||'-'}</span><br><br><span style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Kecamatan</span><br><span>${row[7]||'-'}${row[8]?'<br>'+row[8]:''}</span><br><br><span style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Kategori</span><br><span style="background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:6px;font-weight:700;font-size:12px;">${row[9]||'-'}</span>${row[9]?'<br><span style="font-size:11px;color:#64748b;">'+({'A':'Pertanian, Kehutanan & Perikanan','B':'Pertambangan & Penggalian','C':'Industri','D':'Pengadaan Listrik, Gas, Uap/Air Panas & Udara Dingin','E':'Penyediaan Air, Pengelolahan Limbah, Penanganan Limbah & Remediasi','F':'Konstruksi','G':'Perdagangan Besar & Eceran','H':'Transportasi & Penyimpanan','I':'Penyediaan Akomodasi & Penyediaan Makan Minum','J':'Aktivitas Penerbitan, Penyiaran, serta Produksi & Distribusi Konten','K':'Aktivitas Telekomunikasi, Pemrograman Komputer, Konsultansi, Infrastruktur Komputasi & Jasa Informasi Lainnya','L':'Aktivitas Keuangan & Asuransi','M':'Real Estat','N':'Aktivitas Profesional, Ilmiah & Teknis','O':'Aktivitas Administratif & Penunjang Usaha','P':'Administrasi Pemerintahan, Pertahanan & Jaminan Sosial Wajib','Q':'Pendidikan','R':'Aktivitas Kesehatan Manusia & Aktivitas Sosial','S':'Kesenian, Hiburan & Rekreasi','T':'Aktivitas Jasa Lainnya','U':'Aktivitas Rumah Tangga Sebagai Pemberi Kerja; Aktivitas Yang Menghasilkan Barang Jasa Oleh Rumah Tangga untuk Keperluan Sendiri yang Tak Terdiferensiasi','V':'Aktivitas Badan Internasional & Badan Ekstra Internasional Lainnya'}[row[9]]||'-')+'</span>':'' }</div>`,{maxWidth:240})
+          .bindTooltip(row[3])
+          semuaMarker.push({marker,kec:row[7]})
+        }
+      }
+
+      function tampilkanTabel(data) {
+        const tbody=document.getElementById('isi-tabel'); tbody.innerHTML=''
+        for (let i=1; i<data.length; i++) {
+          const row=data[i]
+          tbody.innerHTML+=`<tr><td style="color:#94a3b8;font-size:12px;">${i}</td><td style="color:#94a3b8;font-size:12px;">${row[0]||'-'}</td><td style="font-weight:600;color:#0f172a;">${row[3]}</td><td>${row[7]}</td><td><span style="background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;">${row[9]}</span></td><td><button class="btn-edit" onclick="bukaModalEdit(${i+1})">✏️ Edit</button><button class="btn-hapus" onclick="hapusData(${i+1},this)">🗑️</button></td></tr>`
+        }
+      }
+
+      function cariData() {
+        const kw=document.getElementById('search-box').value.toLowerCase()
+        tampilkanTabel([semuaData[0],...semuaData.filter((r,i)=>i>0&&r[0].toString().toLowerCase().includes(kw))])
+      }
+
+      function refreshData(cb) {
+        google.script.run.withSuccessHandler(function(data){ semuaData=data; prosesData(data); tampilkanTabel(data); if(cb) cb() }).getBacaData()
+      }
+
+      function tampilkanToast(pesan) {
+        const t=document.getElementById('toast'); t.innerText=pesan; t.classList.add('muncul')
+        setTimeout(()=>t.classList.remove('muncul'),3000)
+      }
+
+      function bukaModalTambah() {
+        document.getElementById('judul-modal').innerText='Tambah Data Usaha'
+        ;['input-baris','input-idsbr','input-nama','input-alamat','input-kecamatan','input-desa','input-kategori','input-lat','input-lon'].forEach(id=>document.getElementById(id).value='')
+        document.getElementById('modal').classList.add('aktif')
+      }
+
+      function bukaModalEdit(noBaris) {
+        const row=semuaData[noBaris-1]
+        document.getElementById('judul-modal').innerText='Edit Data Usaha'
+        document.getElementById('input-baris').value=noBaris
+        document.getElementById('input-idsbr').value=row[0]; document.getElementById('input-nama').value=row[3]
+        document.getElementById('input-alamat').value=row[4]; document.getElementById('input-kecamatan').value=row[7]
+        document.getElementById('input-desa').value=row[8]||''; document.getElementById('input-kategori').value=row[9]
+        document.getElementById('input-lat').value=row[1]; document.getElementById('input-lon').value=row[2]
+        document.getElementById('modal').classList.add('aktif')
+      }
+
+      function tutupModal() {
+        document.getElementById('modal').classList.remove('aktif')
+        document.getElementById('btn-simpan').innerText='Simpan'; document.getElementById('btn-simpan').disabled=false
+      }
+
+      function simpanData() {
+        const noBaris=document.getElementById('input-baris').value
+        const d={idsbr:document.getElementById('input-idsbr').value,nama:document.getElementById('input-nama').value,alamat:document.getElementById('input-alamat').value,kecamatan:document.getElementById('input-kecamatan').value,desa:document.getElementById('input-desa').value,kategori:document.getElementById('input-kategori').value,lat:document.getElementById('input-lat').value,lon:document.getElementById('input-lon').value}
+        const btn=document.getElementById('btn-simpan'); btn.innerText='⏳ Menyimpan...'; btn.disabled=true
+        if (noBaris==='') {
+          google.script.run.withSuccessHandler(()=>{tutupModal();refreshData(()=>tampilkanToast('✅ Data berhasil ditambahkan!'))}).withFailureHandler(err=>{tutupModal();tampilkanToast('❌ Gagal: '+err)}).tambahData(d)
+        } else {
+          google.script.run.withSuccessHandler(()=>{tutupModal();refreshData(()=>tampilkanToast('✅ Data berhasil diupdate!'))}).withFailureHandler(err=>{tutupModal();tampilkanToast('❌ Gagal: '+err)}).editData(parseInt(noBaris),d)
+        }
+      }
+
+      function hapusData(noBaris,btnEl) {
+        if (!confirm('Yakin ingin menghapus data ini?')) return
+        btnEl.innerText='⏳'; btnEl.disabled=true
+        google.script.run.withSuccessHandler(()=>refreshData(()=>tampilkanToast('✅ Data berhasil dihapus!'))).withFailureHandler(err=>{btnEl.innerText='🗑️';btnEl.disabled=false;tampilkanToast('❌ Gagal: '+err)}).hapusData(noBaris)
+      }
+    </script>
+  </body>
+</html>

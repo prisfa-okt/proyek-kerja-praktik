@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<base target="_top">
+  <title>GIS Usaha Sidoarjo - BPS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* RESET & DASAR */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body { background: #f0f4f8; min-height: 100vh; color: #333;  overflow-x: hidden;
+  overflow-y: auto; }
+
+    /* WADAH KONTEN UTAMA - FULL SCREEN GRADASI */
+    .main-container { 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh;
+      background: 
+      /* LINGKARAN 1: Sorotan di sebelah kiri (di belakang teks) */
+      radial-gradient(circle at top left, #ffffff 0%, transparent 50%),
+      
+      /* LINGKARAN 2: Sorotan di sebelah kanan (di belakang monumen) */
+      radial-gradient(circle at 75% 75%, #ffffff 0%, transparent 50%),
+      
+      /* WARNA DASAR: Biru penutup di lapisan paling bawah */
+      #a8d5ff;
+      position: relative;
+    }
+
+    .bps-container {
+      position: absolute;
+      top: 30px;
+      left: 50px;
+      display: flex;
+      align-items: center;
+      gap: 1px; /* Ditambah sedikit biar tulisan gak nempel lambang */
+      z-index: 20;
+      font-style: italic;
+    }
+    .bps-logo {
+      width: 50px; /* Menyesuaikan ukuran lambang BPS */
+      height: auto;
+    }
+    .bps-text {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1A5276;
+      line-height: 1.2;
+    }
+
+    /* HERO SECTION LAYOUT */
+    .hero-section {
+      width: 100%;
+      max-width: 1200px;
+      padding: 0 50px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      align-items: center;
+      justify-content: space-between; /* Menjaga keseimbangan kiri dan kanan */
+      position: relative;
+    }
+
+    .hero-content-left {
+      flex: 1.2;
+      text-align: left;
+      z-index: 10;
+    }
+    .hero-section h1 { 
+      font-size: 64px;
+      margin-bottom: 15px; 
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #111;
+      line-height: 1.1;
+    }
+    .hero-section p { 
+      font-size: 18px;
+      margin-bottom: 40px; 
+      color: #444;
+      max-width: 480px;
+      line-height: 1.5;
+    }
+
+    .hero-content-right {
+      flex: 1;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      z-index: 10;
+    }
+    .monumen-img {
+      width: 100%; 
+      max-width: 450px; 
+      height: auto; 
+    }
+
+    .cta-container {
+      display: flex;
+      gap: 15px;
+    }
+    .btn-login-cta {
+      background: #0093DD;
+      color: white; padding: 12px 30px; font-size: 15px;
+      font-weight: bold; border: none; border-radius: 25px; cursor: pointer; transition: 0.3s;
+      box-shadow: 0 4px 10px rgba(26, 82, 118, 0.3);
+    }
+    .btn-login-cta:hover { background: #154360; transform: translateY(-2px); }
+
+    .btn-registrasi-cta {
+      background: white;
+      color: #1A5276; padding: 12px 30px; font-size: 15px;
+      font-weight: bold; border: 2px solid white;
+      border-radius: 25px; cursor: pointer; transition: 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .btn-registrasi-cta:hover { background: #f8f9fa; transform: translateY(-2px); }
+
+    /* FORM LOGIN CARD */
+    .login-card {
+      background: white; padding: 40px; border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 380px; text-align: center; display: none;
+      z-index: 30;
+    }
+    .login-card h2 { color: #1A5276; margin-bottom: 8px; }
+    .login-card p { color: #888; font-size: 14px; margin-bottom: 24px; }
+    .login-card input { width: 100%; padding: 12px 16px; margin-bottom: 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .login-card input:focus { border-color: #1A5276; outline: none; }
+    .login-card button { width: 100%; padding: 12px; background: #1A5276; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .login-card button:hover { background: #154360; }
+    .btn-back-home { display: inline-block; margin-top: 15px; color: #1A5276; text-decoration: none; font-size: 13px; cursor: pointer; }
+    #pesan-error { color: red; font-size: 13px; margin-top: 10px; display: none; }
+
+    @media (max-width: 768px) {
+
+      body {
+        overflow: auto;
+      }
+
+      .hero-section {
+        grid-template-columns: 1fr;
+        padding: 80px 20px 40px;
+        gap: 25px;
+        align-items: center;
+      }
+
+      .hero-content-right {
+        order: -1;
+        justify-content: center;
+      }
+
+      .hero-content-left {
+        text-align: center;
+      }
+
+      .hero-section h1 {
+        font-size: 38px;
+      }
+
+      .hero-section p {
+        font-size: 15px;
+        margin: 0 auto 25px;
+      }
+
+      .cta-container {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn-login-cta,
+      .btn-registrasi-cta {
+        width: 100%;
+        max-width: 300px;
+      }
+
+      .monumen-img {
+        max-width: 240px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-container">
+
+    <div class="bps-container">
+      <img src="https://lh3.googleusercontent.com/d/1kGkul6XVIybz227U347vuPPII78Jbk5L" alt="Logo BPS" class="bps-logo">
+      <div class="bps-text">BADAN PUSAT STATISTIK<br>KABUPATEN SIDOARJO</div>
+    </div>
+
+    <div id="halaman-home" class="hero-section">
+      <div class="hero-content-left">
+        <h1>SELAMAT<br>DATANG</h1>
+        <p>Platform pemetaan dan analisis distribusi usaha<br>secara spasial di seluruh wilayah Kabupaten Sidoarjo.</p>
+        
+        <div class="cta-container">
+            <button class="btn-login-cta" onclick="masukSebagaiUser()">LIHAT DASHBOARD</button>
+            <button class="btn-registrasi-cta" onclick="bukaHalaman('login')">LOGIN ADMIN</button>
+            <button class="btn-registrasi-cta" onclick="bukaModalInfo()" style="display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> Tentang Data</button>
+        </div>
+      </div> <div class="hero-content-right">
+        <img src="https://lh3.googleusercontent.com/d/1eYvvr_FGVG7sFi3ZgdIUSw1qur2ckDSR" alt="Monumen Sidoarjo" class="monumen-img">
+      </div>
+    </div>
+
+    <div id="halaman-login" class="login-card">
+      <h2>Selamat Datang</h2>
+      <p>Silakan login untuk melanjutkan ke Peta GIS</p>
+
+      <input type="text" id="username" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="prosesLogin()">Login</button>
+      
+      <div id="pesan-error">Username atau password salah!</div>
+      <a class="btn-back-home" onclick="bukaHalaman('home')">← Kembali ke Utama</a>
+    </div>
+
+  </div>
+
+  <div id="modal-info" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:16px;padding:32px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+      <h3 style="color:#1A5276;font-size:18px;font-weight:800;margin-bottom:16px;">Tentang Data GIS Usaha Sidoarjo</h3>
+      <p style="font-size:14px;color:#475569;line-height:1.7;margin-bottom:16px;">Platform ini menampilkan peta sebaran dan analisis statistik usaha di Kabupaten Sidoarjo berdasarkan data hasil survei BPS.</p>
+      <div style="background:#f0f7ff;border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:#1A5276;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Skala Usaha</div>
+        <div style="font-size:13px;color:#334155;line-height:1.8;">
+          <b>UB</b> = Usaha Besar — Kategori ini merujuk pada klasifikasi skala bisnis perusahaan di Indonesia.<br>
+          Berdasarkan ketetapan BPS dan regulasi terkait, kriteria sebuah entitas diklasifikasikan sebagai Usaha Besar adalah:<br>
+          <b>1.</b> Omzet (Pendapatan Tahunan): Memiliki nilai penjualan tahunan lebih dari Rp50 miliar.<br>
+          <b>2.</b> Aset: Memiliki nilai kekayaan bersih lebih dari Rp10 miliar (tidak termasuk tanah dan bangunan tempat usaha).
+        </div>
+      </div>
+      <div style="background:#f0f7ff;border-radius:10px;padding:14px;margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#1A5276;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Kategori Usaha (KBLI)</div>
+        <div style="font-size:12px;color:#334155;line-height:2;">
+          <b>A</b> Pertanian, Kehutanan & Perikanan<br>
+          <b>B</b> Pertambangan & Penggalian<br>
+          <b>C</b> Industri<br>
+          <b>D</b> Pengadaan Listrik, Gas, Uap/Air Panas & Udara Dingin<br>
+          <b>E</b> Penyediaan Air, Pengelolahan Limbah, Penanganan Limbah & Remediasi<br>
+          <b>F</b> Konstruksi<br>
+          <b>G</b> Perdagangan Besar & Eceran<br>
+          <b>H</b> Transportasi & Penyimpanan<br>
+          <b>I</b> Penyediaan Akomodasi & Penyediaan Makan Minum<br>
+          <b>J</b> Aktivitas Penerbitan, Penyiaran, serta Produksi & Distribusi Konten<br>
+          <b>K</b> Aktivitas Telekomunikasi, Pemrograman Komputer, Konsultansi, Infrastruktur Komputasi & Jasa Informasi Lainnya<br>
+          <b>L</b> Aktivitas Keuangan & Asuransi<br>
+          <b>M</b> Real Estat<br>
+          <b>N</b> Aktivitas Profesional, Ilmiah & Teknis<br>
+          <b>O</b> Aktivitas Administratif & Penunjang Usaha<br>
+          <b>P</b> Administrasi Pemerintahan, Pertahanan & Jaminan Sosial Wajib<br>
+          <b>Q</b> Pendidikan<br>
+          <b>R</b> Aktivitas Kesehatan Manusia & Aktivitas Sosial<br>
+          <b>S</b> Kesenian, Hiburan & Rekreasi<br>
+          <b>T</b> Aktivitas Jasa Lainnya<br>
+          <b>U</b> Aktivitas Rumah Tangga Sebagai Pemberi Kerja; Aktivitas Yang Menghasilkan Barang Jasa Oleh Rumah Tangga untuk Keperluan Sendiri yang Tak Terdiferensiasi<br>
+          <b>V</b> Aktivitas Badan Internasional & Badan Ekstra Internasional Lainnya
+        </div>
+      </div>
+      <button onclick="tutupModalInfo()" style="width:100%;padding:11px;background:#1A5276;color:white;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;">Tutup</button>
+    </div>
+  </div>
+
+  <script>
+    function bukaHalaman(namaHalaman) {
+      const home = document.getElementById('halaman-home');
+      const login = document.getElementById('halaman-login');
+
+      if (namaHalaman === 'home') {
+        home.style.display = 'flex';
+        login.style.display = 'none';
+        document.getElementById('pesan-error').style.display = 'none';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+      } else if (namaHalaman === 'login') {
+        home.style.display = 'none';
+        login.style.display = 'block';
+      }
+    }
+
+    // Ganti fungsi ini
+    function masukSebagaiUser() {
+      google.script.run
+        .withSuccessHandler(function(html) {
+          document.open()
+          document.write(html)
+          document.close()
+        })
+        .getPetaHtml('user', '', '', '', '', '', '')
+    }
+
+    function prosesLogin() {
+      const username = document.getElementById('username').value
+      const password = document.getElementById('password').value
+
+      google.script.run
+        .withSuccessHandler(function(hasil) {
+          if (hasil.status === 'ok') {
+            google.script.run
+              .withSuccessHandler(function(html) {
+                document.open()
+                document.write(html)
+                document.close()
+              })
+              .getPetaHtml(
+                'admin',
+                hasil.nama     || '',
+                hasil.jabatan  || '',
+                hasil.kota     || '',
+                hasil.provinsi || '',
+                hasil.email    || '',
+                hasil.telepon  || ''
+              )
+          } else {
+            document.getElementById('pesan-error').style.display = 'block'
+          }
+        })
+        .cekLogin(username, password)
+    }
+    function bukaModalInfo() {
+      const m = document.getElementById('modal-info')
+      m.style.display = 'flex'
+    }
+    function tutupModalInfo() {
+      document.getElementById('modal-info').style.display = 'none'
+    }
+  </script>
+</body>
+</html>
